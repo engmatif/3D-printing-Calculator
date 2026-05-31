@@ -1,0 +1,114 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: #0f1115;
+    color: white;
+    font-family: Arial, sans-serif;
+    padding: 30px;
+}
+
+/* HEADER */
+.header {
+    max-width: 1400px;
+    margin: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 30px;
+}
+
+.logo {
+    width: 180px;
+    height: 50px;
+    border: 1px dashed #3f3f46;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #71717a;
+    border-radius: 10px;
+}
+
+.container {
+    max-width: 1400px;
+    margin: auto;
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 30px;
+}
+
+.card {
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 20px;
+}
+
+h2 {
+    margin-bottom: 18px;
+}
+
+.inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+label {
+    color: #a1a1aa;
+    font-size: 13px;
+}
+
+input,
+select {
+    background: #09090b;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    color: white;
+    padding: 12px;
+    font-size: 15px;
+}
+
+input:focus,
+select:focus {
+    outline: none;
+    border-color: #3b82f6;
+}
+
+.quote-card {
+    position: sticky;
+    top: 30px;
+    height: fit-content;
+}
+
+.price {
+    font-size: 52px;
+    font-weight: bold;
+    margin: 15px 0 30px;
+}
+
+.row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.row span:first-child {
+    color: #a1a1aa;
+}
+
+.divider {
+    height: 1px;
+    background: #27272a;
+    margin: 12px 0;
+}

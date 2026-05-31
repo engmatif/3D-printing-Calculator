@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D Print Calculator</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+
+    <!-- HEADER -->
+    <div class="header">
+        <div class="logo">LOGO</div>
+
+        <div style="display:flex; gap:15px;">
+            <select id="currency">
+                <option value="$">USD</option>
+                <option value="EGP">EGP</option>
+                <option value="SAR">SAR</option>
+                <option value="TL">TL</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="container">
+
+        <!-- LEFT -->
+        <div>
+
+            <div class="card">
+                <h2>Material</h2>
+
+                <div class="inputs">
+
+                    <div class="input-group">
+                        <label>Material Type</label>
+                        <select id="material">
+                            <option value="PLA">PLA</option>
+                            <option value="PETG">PETG</option>
+                            <option value="ASA">ASA</option>
+                            <option value="ABS">ABS</option>
+                            <option value="PC">PC</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Spool Price</label>
+                        <input id="spoolPrice" type="number" value="20">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Spool Weight (g)</label>
+                        <input id="spoolWeight" type="number" value="1000">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Filament Used (g)</label>
+                        <input id="filamentUsed" type="number" value="185">
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Print</h2>
+
+                <div class="inputs">
+                    <div class="input-group">
+                        <label>Print Hours</label>
+                        <input id="printHours" type="number" value="14">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Quantity</label>
+                        <input id="quantity" type="number" value="1">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Machine</h2>
+
+                <div class="inputs">
+                    <div class="input-group">
+                        <label>Wattage</label>
+                        <input id="wattage" type="number" value="350">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Electricity Price</label>
+                        <input id="electricity" type="number" value="0.12">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Wear / Hour</label>
+                        <input id="wear" type="number" value="0.4">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Business</h2>
+
+                <div class="inputs">
+                    <div class="input-group">
+                        <label>Labor</label>
+                        <input id="labor" type="number" value="5">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Failure %</label>
+                        <input id="failure" type="number" value="10">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Profit %</label>
+                        <input id="profit" type="number" value="25">
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- RIGHT -->
+        <div class="card quote-card">
+
+            <div id="matLabel" style="color:#a1a1aa;">
+                MATERIAL
+            </div>
+
+            <div class="price" id="finalPrice">$0.00</div>
+
+            <div>
+                <div class="row">
+                    <span>Material</span>
+                    <span id="matCost"></span>
+                </div>
+
+                <div class="row">
+                    <span>Electricity</span>
+                    <span id="elecCost"></span>
+                </div>
+
+                <div class="row">
+                    <span>Machine Wear</span>
+                    <span id="wearCost"></span>
+                </div>
+
+                <div class="row">
+                    <span>Failure</span>
+                    <span id="failCost"></span>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="row">
+                    <span>Subtotal</span>
+                    <span id="subtotal"></span>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script src="calculator.js"></script>
+
+</body>
+
+</html>
