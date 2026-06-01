@@ -1,174 +1,140 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>3D Print Calculator</title>
+    <title>PrintQuote | Professional 3D Printing Pricing</title>
     <link rel="stylesheet" href="styles.css" />
 </head>
-
 <body>
 
-    <!-- HEADER -->
-    <div class="header">
-        <div class="logo">
-            <img src="logo.png" alt="Logo" class="logo">
-            </div>
+    <!-- NAVBAR -->
+    <nav class="navbar">
+        <div class="nav-content">
 
-        <div style="display:flex; gap:15px;">
-            <select id="currency">
-                <option value="$">USD</option>
-                <option value="EGP">EGP</option>
-                <option value="SAR">SAR</option>
-                <option value="TL">TL</option>
-            </select>
-        </div>
-    </div>
+            <a href="index.html" class="logo-wrap">
+                <svg class="logo-icon" width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="28" height="28" rx="8" fill="#ffffff" fill-opacity="0.07"/>
+                    <path d="M7 9.5C7 8.67 7.67 8 8.5 8h5.25v4.5H7V9.5z" fill="#3b82f6"/>
+                    <rect x="7" y="13.5" width="6.75" height="3.5" fill="#3b82f6" fill-opacity="0.5"/>
+                    <rect x="7" y="18" width="6.75" height="2" rx="1" fill="#3b82f6" fill-opacity="0.3"/>
+                    <path d="M15 8h4.5C20.33 8 21 8.67 21 9.5v9c0 .83-.67 1.5-1.5 1.5H15V8z" fill="#ffffff" fill-opacity="0.15"/>
+                    <line x1="15.75" y1="11" x2="20" y2="11" stroke="#fff" stroke-opacity="0.4" stroke-width="1.2" stroke-linecap="round"/>
+                    <line x1="15.75" y1="14" x2="20" y2="14" stroke="#fff" stroke-opacity="0.4" stroke-width="1.2" stroke-linecap="round"/>
+                    <line x1="15.75" y1="17" x2="18.5" y2="17" stroke="#fff" stroke-opacity="0.4" stroke-width="1.2" stroke-linecap="round"/>
+                </svg>
+                <span class="logo-name">PrintQuote</span>
+            </a>
 
-    <div class="container">
-
-        <!-- LEFT -->
-        <div>
-
-            <div class="card">
-                <h2>Material</h2>
-
-                <div class="inputs">
-
-                    <div class="input-group">
-                        <label>Material Type</label>
-                        <select id="material">
-                            <option value="PLA">PLA</option>
-                            <option value="PETG">PETG</option>
-                            <option value="ASA">ASA</option>
-                            <option value="ABS">ABS</option>
-                            <option value="PC">PC</option>
-                        </select>
-                    </div>
-
-                    <div class="input-group">
-                        <label>Spool Price</label>
-                        <input id="spoolPrice" type="number" value="20">
-                    </div>
-
-                    <div class="input-group">
-                        <label>Spool Weight (g)</label>
-                        <input id="spoolWeight" type="number" value="1000">
-                    </div>
-
-                    <div class="input-group">
-                        <label>Filament Used (g)</label>
-                        <input id="filamentUsed" type="number" value="185">
-                    </div>
-
-                </div>
-            </div>
-
-            <div class="card">
-                <h2>Print</h2>
-
-                <div class="inputs">
-                    <div class="input-group">
-                        <label>Print Hours</label>
-                        <input id="printHours" type="number" value="14">
-                    </div>
-
-                    <div class="input-group">
-                        <label>Quantity</label>
-                        <input id="quantity" type="number" value="1">
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h2>Machine</h2>
-
-                <div class="inputs">
-                    <div class="input-group">
-                        <label>Wattage</label>
-                        <input id="wattage" type="number" value="350">
-                    </div>
-
-                    <div class="input-group">
-                        <label>Electricity Price</label>
-                        <input id="electricity" type="number" value="0.12">
-                    </div>
-
-                    <div class="input-group">
-                        <label>Wear / Hour</label>
-                        <input id="wear" type="number" value="0.4">
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h2>Business</h2>
-
-                <div class="inputs">
-                    <div class="input-group">
-                        <label>Labor</label>
-                        <input id="labor" type="number" value="5">
-                    </div>
-
-                    <div class="input-group">
-                        <label>Failure %</label>
-                        <input id="failure" type="number" value="10">
-                    </div>
-
-                    <div class="input-group">
-                        <label>Profit %</label>
-                        <input id="profit" type="number" value="25">
-                    </div>
+            <div class="nav-right">
+                <div class="nav-links">
+                    <a href="index.html" class="active">Home</a>
+                    <a href="calculator.html">Calculator</a>
+                    <a href="blog.html">Blog</a>
+                    <a href="about.html">About</a>
                 </div>
             </div>
 
         </div>
+    </nav>
 
-        <!-- RIGHT -->
-        <div class="card quote-card">
+    <!-- HERO -->
+    <section class="hero hero--index">
+        <div class="container hero-content">
 
-            <div id="matLabel" style="color:#a1a1aa;">
-                MATERIAL
+            <div class="hero-tag">Professional 3D Printing Pricing Platform</div>
+
+            <h1>Accurate 3D Printing Pricing For Real Manufacturing Workflows</h1>
+
+            <p>Estimate realistic production costs instantly using material pricing, electricity usage, machine wear, operational overhead, and profit calculations.</p>
+
+            <div class="hero-buttons">
+                <a href="calculator.html" class="button-primary">Open Calculator</a>
+                <a href="blog.html" class="button-secondary">Learn More</a>
             </div>
 
-            <div class="price" id="finalPrice">$0.00</div>
+            <!-- PREVIEW -->
+            <div class="preview">
+                <div class="preview-grid">
 
-            <div>
-                <div class="row">
-                    <span>Material</span>
-                    <span id="matCost"></span>
-                </div>
+                    <div class="preview-card">
+                        <h3>Material Settings</h3>
+                        <div class="fake-input"></div>
+                        <div class="fake-input"></div>
+                        <div class="fake-input"></div>
+                        <h3 style="margin-top:20px;">Machine Settings</h3>
+                        <div class="fake-input"></div>
+                        <div class="fake-input"></div>
+                    </div>
 
-                <div class="row">
-                    <span>Electricity</span>
-                    <span id="elecCost"></span>
-                </div>
+                    <div class="preview-card">
+                        <div style="color:#a1a1aa;font-size:12px;letter-spacing:2px;">FINAL PRICE</div>
+                        <div class="preview-price">$42.80</div>
+                        <div class="preview-row"><span>Material</span><span>$14.20</span></div>
+                        <div class="preview-row"><span>Electricity</span><span>$2.40</span></div>
+                        <div class="preview-row"><span>Machine Wear</span><span>$5.60</span></div>
+                        <div class="preview-row"><span>Failure Reserve</span><span>$4.10</span></div>
+                    </div>
 
-                <div class="row">
-                    <span>Machine Wear</span>
-                    <span id="wearCost"></span>
-                </div>
-
-                <div class="row">
-                    <span>Failure</span>
-                    <span id="failCost"></span>
-                </div>
-
-                <div class="divider"></div>
-
-                <div class="row">
-                    <span>Subtotal</span>
-                    <span id="subtotal"></span>
                 </div>
             </div>
 
         </div>
+    </section>
 
-    </div>
+    <!-- FEATURES -->
+    <section class="section">
+        <div class="container">
 
-    <script src="calculator.js"></script>
+            <h2 class="section-title">Built For Production-Level Pricing</h2>
+
+            <p class="section-sub">PrintQuote focuses on practical manufacturing economics, not rough hobby estimates. Every calculation is designed to reflect real-world operational costs.</p>
+
+            <div class="features-grid">
+
+                <div class="feature-card">
+                    <h3>Material Intelligence</h3>
+                    <p>Support for multiple filament types including PLA, PETG, ABS, ASA, and PC with per-spool pricing.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>Real Cost Estimation</h3>
+                    <p>Include electricity usage, machine wear, operational overhead, and failure risk in every quote.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>G-code Import</h3>
+                    <p>Automatically extract print time, filament weight, and material from PrusaSlicer, Cura, Orca, Bambu, and more.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>Multi-Currency Support</h3>
+                    <p>Generate quotes instantly in USD, EGP, SAR, and Turkish Lira.</p>
+                </div>
+
+            </div>
+
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section style="padding-bottom:100px;">
+        <div class="container">
+            <div class="cta-box">
+                <h2>Start Pricing Smarter</h2>
+                <p>Build more accurate quotes, reduce pricing mistakes, and improve profitability for your 3D printing workflow.</p>
+                <a href="calculator.html" class="button-primary">Open Calculator</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="footer-content">
+            <p>© 2026 PrintQuote</p>
+            <p>Built for makers, engineers, and manufacturing workflows.</p>
+        </div>
+    </footer>
 
 </body>
-
 </html>
