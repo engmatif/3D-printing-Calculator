@@ -1,5 +1,5 @@
 /* =========================================================
-   PRINTQUOTE — styles.css
+   PRINTOBS — styles.css
    Single shared stylesheet for all pages.
    ========================================================= */
 
@@ -404,6 +404,11 @@ footer {
 }
 
 .blog-image {
+    object-fit:cover;
+    display:block;
+    height:100%;
+    min-height:290px;
+    overflow:hidden;
     height: 220px;
     background: linear-gradient(135deg, #1e293b, #111827);
     display: flex;
