@@ -1047,15 +1047,12 @@ input:focus, select:focus {
 @media print {
     @page { margin: 15mm 18mm; size: A4; }
 
-    /* Hide everything except the invoice print view */
     body > *:not(#invoice-print-view) { display: none !important; }
 
     #invoice-print-view {
         display: block !important;
-        position: fixed;
-        inset: 0;
+        width: 100%;
         background: white;
         color: black;
-        z-index: 9999;
     }
 }
