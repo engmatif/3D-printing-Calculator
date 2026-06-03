@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Loading… | PrintQuote</title>
+    <link rel="stylesheet" href="blogstyles.css" />
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar">
+        <div class="nav-content">
+
+        <a href="index.html" class="logo-wrap">
+            <img src="logo.png" alt="PRINT OBS" class="logo-icon" style="width: 100px; height:100px; object-fit:contain;">
+        </a>
+
+            <div class="nav-right">
+                <div class="nav-links">
+                    <a href="index.html">Home</a>
+                    <a href="calculator.html">Calculator</a>
+                    <a href="blog.html" class="active">Blog</a>
+                    <a href="about.html">About</a>
+                </div>
+            </div>
+
+        </div>
+    </nav>
+
+    <!-- CONTENT — rendered by JS -->
+    <div id="page-root"></div>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="footer-content">
+            <p>© 2026 PrintQuote</p>
+            <p>Built for makers, engineers, and manufacturing workflows.</p>
+        </div>
+    </footer>
+
+    <script src="posts.js"></script>
+    <script>
+    (function () {
+
+        /* ── Read the ?id= parameter ─────────────────────── */
+        const params = new URLSearchParams(window.location.search);
+        const id     = params.get("id");
+        const post   = POSTS.find(p => p.id === id);
+        const root   = document.getElementById("page-root");
+
+        /* ── 404 ─────────────────────────────────────────── */
+        if (!post) {
+            document.title = "Post Not Found | PrintQuote";
+            root.innerHTML = `
+                <div class="container post-404">
+                    <h2>Post Not Found</h2>
+                    <p>That article doesn't exist, or the link may have changed.</p>
+                    <a href="blog.html" class="button-primary">Back to Blog</a>
+                </div>`;
+            return;
+        }
+
+        /* ── Build table of contents ─────────────────────── */
+        const tocItems = (post.toc || []).map(item =>
+            `<a class="toc-link" href="#">${item}</a>`
+        ).join("");
+
+        const tocHTML = tocItems ? `
+            <div class="sidebar-card">
+                <h4>In this article</h4>
+                ${tocItems}
+            </div>` : "";
+
+        /* ── Other posts (sidebar) ───────────────────────── */
+        const related = POSTS
+            .filter(p => p.id !== post.id)
+            .slice(0, 4)
+            .map(p => `<a class="toc-link" href="post.html?id=${p.id}">${p.title}</a>`)
+            .join("");
+
+        const relatedHTML = related ? `
+            <div class="sidebar-card" style="margin-top:0;">
+                <h4>More articles</h4>
+                ${related}
+            </div>` : "";
+
+        /* ── Render ──────────────────────────────────────── */
+        document.title = post.title + " | PrintQuote";
+
+        root.innerHTML = `
+            <!-- HERO -->
+            <section class="post-hero">
+                <div class="container">
+                    <a href="blog.html" class="post-back">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2.5"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="15 18 9 12 15 6"/>
+                        </svg>
+                        All Articles
+                    </a>
+                    <div class="post-meta">
+                        <span class="blog-tag">${post.tag}</span>
+                        <span class="post-date">${post.date}</span>
+                    </div>
+                    <h1>${post.title}</h1>
+                    <p class="post-desc">${post.description}</p>
+                </div>
+            </section>
+
+            <!-- BODY -->
+            <div class="container">
+                <div class="post-layout">
+
+                    <!-- Article content -->
+                    <article class="post-body">
+                        ${post.content}
+
+                        <!-- Bottom CTA -->
+                        <div class="callout" style="margin-top:50px; border-left-color: var(--green);">
+                            <p><strong>Put these numbers to work.</strong> The PrintQuote calculator implements every cost layer discussed in this article — including G-code import to auto-fill print time and filament weight from your slicer file.</p>
+                        </div>
+                        <div style="margin-top:20px;">
+                            <a href="calculator.html" class="button-primary">Open Calculator</a>
+                        </div>
+                    </article>
+
+                    <!-- Sidebar -->
+                    <aside class="post-sidebar">
+                        ${tocHTML}
+                        ${relatedHTML}
+                    </aside>
+
+                </div>
+            </div>`;
+
+    })();
+    </script>
+
+</body>
+</html>
