@@ -13,9 +13,18 @@
         <div class="nav-content">
 
             <a href="index.html" class="logo-wrap">
-                <img src="logo.png" alt="PRINT OBS" class="logo-icon" style="width: 100px; height:100px; object-fit:contain;">
+                <svg class="logo-icon" width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="28" height="28" rx="8" fill="#ffffff" fill-opacity="0.07"/>
+                    <path d="M7 9.5C7 8.67 7.67 8 8.5 8h5.25v4.5H7V9.5z" fill="#3b82f6"/>
+                    <rect x="7" y="13.5" width="6.75" height="3.5" fill="#3b82f6" fill-opacity="0.5"/>
+                    <rect x="7" y="18" width="6.75" height="2" rx="1" fill="#3b82f6" fill-opacity="0.3"/>
+                    <path d="M15 8h4.5C20.33 8 21 8.67 21 9.5v9c0 .83-.67 1.5-1.5 1.5H15V8z" fill="#ffffff" fill-opacity="0.15"/>
+                    <line x1="15.75" y1="11" x2="20" y2="11" stroke="#fff" stroke-opacity="0.4" stroke-width="1.2" stroke-linecap="round"/>
+                    <line x1="15.75" y1="14" x2="20" y2="14" stroke="#fff" stroke-opacity="0.4" stroke-width="1.2" stroke-linecap="round"/>
+                    <line x1="15.75" y1="17" x2="18.5" y2="17" stroke="#fff" stroke-opacity="0.4" stroke-width="1.2" stroke-linecap="round"/>
+                </svg>
+                <span class="logo-name">PrintQuote</span>
             </a>
-
 
             <div class="nav-right">
                 <div class="nav-links">
@@ -162,38 +171,97 @@
 
             </div>
 
-            <!-- RIGHT COLUMN — QUOTE -->
-            <div class="card quote-card">
+            <!-- RIGHT COLUMN -->
+            <div>
 
-                <div id="matLabel">FINAL PRICE</div>
+                <!-- QUOTE CARD -->
+                <div class="card quote-card">
 
-                <div class="price" id="finalPrice">$ 0.00</div>
+                    <div id="matLabel">FINAL PRICE</div>
+                    <div class="price" id="finalPrice">$ 0.00</div>
 
-                <div>
-                    <div class="row">
-                        <span>Material</span>
-                        <span id="matCost">$ 0.00</span>
+                    <div>
+                        <div class="row"><span>Material</span><span id="matCost">$ 0.00</span></div>
+                        <div class="row"><span>Electricity</span><span id="elecCost">$ 0.00</span></div>
+                        <div class="row"><span>Machine Wear</span><span id="wearCost">$ 0.00</span></div>
+                        <div class="row"><span>Failure Reserve</span><span id="failCost">$ 0.00</span></div>
+                        <div class="divider"></div>
+                        <div class="row"><span>Subtotal</span><span id="subtotal">$ 0.00</span></div>
+                        <div class="row"><span>Tax</span><span id="taxCost">$ 0.00</span></div>
                     </div>
-                    <div class="row">
-                        <span>Electricity</span>
-                        <span id="elecCost">$ 0.00</span>
+
+                    <button class="add-invoice-btn" id="addToInvoiceBtn" onclick="addToInvoice()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Add to Invoice
+                    </button>
+
+                </div>
+
+                <!-- INVOICE SETTINGS -->
+                <div class="card" style="margin-top:16px;">
+                    <h2>Invoice Settings</h2>
+                    <div class="inputs">
+
+                        <div class="input-group">
+                            <label>Company Logo</label>
+                            <div id="logoArea">
+                                <input type="file" id="logoUpload" accept="image/*" style="display:none;">
+                                <label for="logoUpload" class="gcode-label">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                        <circle cx="8.5" cy="8.5" r="1.5"/>
+                                        <polyline points="21 15 16 10 5 21"/>
+                                    </svg>
+                                    Upload logo image
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label>Company Name</label>
+                            <input type="text" id="companyName" placeholder="PRINT OBS">
+                        </div>
+
+                        <div class="toggle-row">
+                            <span>Include Tax in Invoice</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="includeTax" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
                     </div>
-                    <div class="row">
-                        <span>Machine Wear</span>
-                        <span id="wearCost">$ 0.00</span>
+                </div>
+
+                <!-- INVOICE -->
+                <div class="card" style="margin-top:16px;">
+                    <div class="invoice-header-row">
+                        <h2 style="margin-bottom:0;">Invoice</h2>
+                        <div style="display:flex; gap:8px;">
+                            <button class="invoice-clear-btn" onclick="clearInvoice()">Clear</button>
+                            <button class="invoice-print-btn" onclick="printInvoice()">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; margin-right:4px;">
+                                    <polyline points="6 9 6 2 18 2 18 9"/>
+                                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                                    <rect x="6" y="14" width="12" height="8"/>
+                                </svg>
+                                Print / PDF
+                            </button>
+                        </div>
                     </div>
-                    <div class="row">
-                        <span>Failure Reserve</span>
-                        <span id="failCost">$ 0.00</span>
+
+                    <div id="invoiceItems">
+                        <p class="invoice-empty">No items yet — calculate a price and click <strong>Add to Invoice</strong>.</p>
                     </div>
-                    <div class="divider"></div>
-                    <div class="row">
-                        <span>Subtotal</span>
-                        <span id="subtotal">$ 0.00</span>
-                    </div>
-                    <div class="row">
-                        <span>Tax</span>
-                        <span id="taxCost">$ 0.00</span>
+
+                    <div id="invoiceTotals" style="display:none;">
+                        <div class="divider"></div>
+                        <div class="row" style="font-size:13px;"><span>Pre-tax Total</span><span id="invPreTax"></span></div>
+                        <div class="row" id="invTaxRow" style="font-size:13px;"><span>Tax</span><span id="invTax"></span></div>
+                        <div class="divider"></div>
+                        <div class="row" style="font-size:16px; font-weight:700;"><span>Total</span><span id="invTotal"></span></div>
                     </div>
                 </div>
 
@@ -202,17 +270,20 @@
         </div>
     </div>
 
+    <!-- Hidden print view — populated by printInvoice() -->
+    <div id="invoice-print-view" style="display:none;"></div>
+
     <!-- FOOTER -->
     <footer>
-    <div class="footer-content">
-        <p>© 2026 PRINT OBS</p>
-        <div style="display:flex; gap:20px; flex-wrap:wrap; align-items:center;">
-            <p>Built for makers, engineers, and manufacturing workflows.</p>
-            <a href="privacy.html" style="color:#71717a; font-size:14px; transition:color 0.15s;"
-               onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#71717a'">Privacy Policy</a>
+        <div class="footer-content">
+            <p>© 2026 PRINT OBS</p>
+            <div style="display:flex; gap:20px; flex-wrap:wrap; align-items:center;">
+                <p>Built for makers, engineers, and manufacturing workflows.</p>
+                <a href="privacy.html" style="color:#71717a; font-size:14px; transition:color 0.15s;"
+                    onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#71717a'">Privacy Policy</a>
+            </div>
         </div>
-    </div>
-</footer>
+    </footer>
 
     <script src="calculator.js"></script>
 </body>
