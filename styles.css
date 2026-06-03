@@ -443,7 +443,7 @@ footer {
 .featured-grid { display: grid; grid-template-columns: 1fr 1fr; }
 
 .featured-image {
-    min-height: 420px;
+    min-height: 220px;
     background: linear-gradient(135deg, #111827, #1e293b);
     display: flex;
     align-items: center;
