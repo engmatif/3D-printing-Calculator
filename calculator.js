@@ -1,37 +1,41 @@
 /* =========================================================
-   PRINTOBS — calculator.js
+   PRINT OBS — calculator.js
    =========================================================
-   Sections:
-     1. Calculator
-     2. GCode Reader
-        – Smart file reading (first + last 30 KB)
-        – Slicer detection: PrusaSlicer, OrcaSlicer,
-          BambuStudio, SuperSlicer, Cura, IdeaMaker, Simplify3D
-        – Per-slicer parsers (filament g, print hours, material)
-        – Field flash animation on auto-fill
+   1. Calculator  — live cost calculation
+   2. GCode Reader — universal parser (any slicer)
+      · Reads first + last 40 KB (catches end-of-file metadata)
+      · Detects: PrusaSlicer, OrcaSlicer, BambuStudio,
+        SuperSlicer, Cura, IdeaMaker, Simplify3D, KISSlicer,
+        Slic3r, Repetier, CraftWare, MatterControl, Unknown
+      · Extracts filament (g / cm³ / mm / m), time, material
+      · Multi-material: sums all extruder values
+   3. Invoice system
    ========================================================= */
- 
- 
+
+const MATERIAL_DENSITY   = { PLA:1.24, PETG:1.27, ABS:1.04, ASA:1.07, PC:1.20, TPU:1.21, NYLON:1.13 };
+const FILAMENT_DIAMETER_MM = 1.75;
+
+
 /* =========================================================
    1. CALCULATOR
    ========================================================= */
- 
+
 function v(id) {
     return Number(document.getElementById(id).value) || 0;
 }
- 
+
 function cur() {
     return document.getElementById("currency").value;
 }
- 
+
 function mat() {
     return document.getElementById("material").value;
 }
- 
+
 function setDisplay(id, val) {
     document.getElementById(id).innerText = cur() + " " + val.toFixed(2);
 }
- 
+
 function calc() {
     const material    = (v("filamentUsed") / (v("spoolWeight") || 1)) * v("spoolPrice") * v("quantity");
     const electricity = (v("wattage") / 1000) * v("printHours") * v("electricity");
@@ -41,7 +45,7 @@ function calc() {
     const preTax      = (subtotal + failure) * (1 + v("profit") / 100);
     const tax         = preTax * (v("tax") / 100);
     const final       = preTax + tax;
- 
+
     setDisplay("matCost",    material);
     setDisplay("elecCost",   electricity);
     setDisplay("wearCost",   wear);
@@ -50,179 +54,272 @@ function calc() {
     setDisplay("taxCost",    tax);
     setDisplay("finalPrice", final);
 }
- 
+
 // Attach listeners to all inputs/selects
 document.querySelectorAll("input, select").forEach(el => el.addEventListener("input", calc));
 calc();
- 
- 
+
+
 /* =========================================================
-   2. GCODE READER
+   2. GCODE READER — Universal parser
+   ─────────────────────────────────────────────────────────
+   Does NOT branch on slicer type. Tries every known pattern
+   from every slicer on every file, so any G-code works.
+   Reads first + last 40 KB to catch metadata written at
+   the end of file (PrusaSlicer / OrcaSlicer / BambuStudio).
    ========================================================= */
- 
+
 const gcodeInput = document.getElementById("gcodeFile");
 if (gcodeInput) {
     gcodeInput.addEventListener("change", handleGcodeUpload);
 }
- 
-/* ─── Entry point ─────────────────────────────────────── */
+
+/* ─── File reading ────────────────────────────────────────*/
 function handleGcodeUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
- 
+
     setStatus("Reading file…", "loading");
- 
-    const HEAD = 30 * 1024;  // 30 KB
-    const TAIL = 30 * 1024;  // 30 KB
- 
-    if (file.size <= HEAD + TAIL) {
-        // Small file — read all at once
+
+    const CHUNK = 40 * 1024; // 40 KB each end
+
+    if (file.size <= CHUNK * 2) {
         readBlob(file, text => processGcode(text, file.name));
     } else {
-        // Large file — read head (Cura/IdeaMaker metadata) +
-        //              tail (PrusaSlicer/Orca/Bambu metadata)
-        readBlob(file.slice(0, HEAD), headText => {
-            readBlob(file.slice(file.size - TAIL), tailText => {
-                processGcode(headText + "\n" + tailText, file.name);
+        readBlob(file.slice(0, CHUNK), head => {
+            readBlob(file.slice(-CHUNK), tail => {
+                processGcode(head + "\n" + tail, file.name);
             });
         });
     }
 }
- 
-function readBlob(blob, callback) {
-    const reader = new FileReader();
-    reader.onload  = e  => callback(e.target.result);
-    reader.onerror = () => setStatus("Could not read file.", "error");
-    reader.readAsText(blob);
+
+function readBlob(blob, cb) {
+    const r = new FileReader();
+    r.onload  = e => cb(e.target.result);
+    r.onerror = () => setStatus("Could not read file.", "error");
+    r.readAsText(blob);
 }
- 
-/* ─── Slicer detection ────────────────────────────────── */
+
+/* ─── Slicer detection (for display only) ────────────────
+   Parsing is universal — slicer name is only shown in the
+   status bar so the user knows what was detected.           */
 function detectSlicer(text) {
-    if (text.includes("OrcaSlicer"))                                   return "orca";
-    if (text.includes("BambuStudio"))                                  return "bambu";
-    if (text.includes("PrusaSlicer"))                                  return "prusa";
-    if (text.includes("SuperSlicer"))                                  return "superslicer";
-    if (text.includes("Cura_SteamEngine"))                             return "cura";
-    if (text.includes("ideaMaker") || text.includes("IdeaMaker"))      return "ideamaker";
-    if (text.includes("Simplify3D"))                                   return "simplify3d";
-    return "unknown";
+    const h = text.substring(0, 2000);
+    if (/OrcaSlicer/i.test(h))                return "OrcaSlicer";
+    if (/BambuStudio/i.test(h))               return "BambuStudio";
+    if (/SuperSlicer/i.test(h))               return "SuperSlicer";
+    if (/PrusaSlicer/i.test(h))               return "PrusaSlicer";
+    if (/Cura_SteamEngine/i.test(h))          return "Cura";
+    if (/ideaMaker|IdeaMaker/i.test(h))       return "IdeaMaker";
+    if (/Simplify3D/i.test(h))                return "Simplify3D";
+    if (/KISSlicer/i.test(h))                 return "KISSlicer";
+    if (/Slic3r/i.test(h))                    return "Slic3r";
+    if (/Repetier/i.test(h))                  return "Repetier";
+    if (/CraftWare/i.test(h))                 return "CraftWare";
+    if (/MatterControl|MatterSlice/i.test(h)) return "MatterControl";
+    return "Unknown Slicer";
 }
- 
-/* ─── Main processor ──────────────────────────────────── */
+
+/* ─── Main processor ──────────────────────────────────────*/
 function processGcode(text, filename) {
     const slicer = detectSlicer(text);
- 
-    if (slicer === "unknown") {
-        setStatus("⚠  Slicer not recognised — fill in values manually.", "warning");
-        return;
-    }
- 
-    const data = parseGcode(text, slicer);
+    const data   = parseGCode(text);
+
     applyGcodeData(data);
- 
-    // Build a summary line for the status bar
-    const short  = filename.length > 30 ? filename.slice(0, 27) + "…" : filename;
-    const parts  = [];
-    if (data.filamentUsed > 0) parts.push(data.filamentUsed.toFixed(1) + " g");
-    if (data.printHours   > 0) parts.push(hoursToLabel(data.printHours));
-    if (data.material)         parts.push(data.material);
- 
+
+    const short = filename.length > 30 ? filename.slice(0, 27) + "…" : filename;
+    const parts = [];
+    if (data.filamentG  !== null) parts.push(data.filamentG.toFixed(1) + "g" + (data.isEstimated ? " ~est" : ""));
+    if (data.printHours !== null) parts.push(hoursToLabel(data.printHours));
+    if (data.material)            parts.push(data.material);
+
+    const found = data.filamentG !== null || data.printHours !== null || data.material;
+
     setStatus(
-        "✓  " + slicer.charAt(0).toUpperCase() + slicer.slice(1) +
-        " · " + short +
-        (parts.length ? " · " + parts.join(", ") : ""),
-        "success"
+        found
+            ? `✓  ${slicer} · ${short}` + (parts.length ? "  ·  " + parts.join(", ") : "")
+            : `⚠  ${slicer} — no metadata found. Fill values manually.`,
+        found ? "success" : "warning"
     );
 }
- 
-/* ─── Per-slicer parsers ──────────────────────────────── */
-function parseGcode(text, slicer) {
-    let filamentUsed = 0;
-    let printHours   = 0;
-    let material     = "";
- 
-    /* PrusaSlicer / OrcaSlicer / BambuStudio / SuperSlicer
-       – Metadata is at the END of the file (inside the tail chunk).
-       – All four share the same comment format.                        */
-    if (["prusa", "orca", "bambu", "superslicer"].includes(slicer)) {
- 
-        const mGrams = text.match(/;\s*filament used \[g\]\s*=\s*([\d.]+)/i);
-        if (mGrams) filamentUsed = parseFloat(mGrams[1]);
- 
-        const mType = text.match(/;\s*filament_type\s*=\s*([^\n;]+)/i);
-        if (mType) material = mType[1].trim().toUpperCase();
- 
-        // Format example: "14h 20m 15s"  or  "1d 2h 3m"
-        const mTime = text.match(/;\s*estimated printing time[^=]*=\s*([^\n]+)/i);
-        if (mTime) printHours = parseTimeString(mTime[1].trim());
+
+/* ─── Universal GCode parser ──────────────────────────────
+   Tries every known comment pattern from every slicer.
+   Priority: grams > cm³ > mm > metres (for filament).
+   For each field the first matching pattern wins.
+   Multi-material values (";  = 45.2; 12.3") are summed.    */
+function parseGCode(text) {
+    let filamentG   = null;
+    let isEstimated = false;
+    let printHours  = null;
+    let material    = null;
+
+    /* ── Filament — grams (direct, highest confidence) ─── */
+    const gramsPats = [
+        /;\s*(?:total )?filament used \[g\]\s*=\s*(.+)/i,      // PrusaSlicer / Orca / Bambu / Super
+        /;Filament weight:\s*([\d.]+)\s*\(g\)/i,               // IdeaMaker
+        /;\s*Filament weight:\s*([\d.]+)\s*g/i,                // Simplify3D / generic
+        /;\s*Material used:.*?\(([\d.]+)g\)/i,                 // Simplify3D inline
+        /;\s*filament used\s*=\s*[\d.]+\s*mm\s*\(([\d.]+)g\)/i,// Slic3r
+        /;\s*Filament used\s*=.*?=\s*([\d.]+)\s*g/i,           // KISSlicer
+        /;\s*filament_weight\s*[=:]\s*([\d.]+)/i,              // generic
+        /;\s*plastic weight\s*=\s*([\d.]+)\s*g/i,              // generic
+    ];
+
+    for (const pat of gramsPats) {
+        const m = text.match(pat);
+        if (m) {
+            const vals = m[1].split(/[;,]/).map(Number).filter(n => !isNaN(n) && n > 0);
+            if (vals.length) { filamentG = vals.reduce((a, b) => a + b, 0); break; }
+        }
     }
- 
-    /* Cura
-       – Metadata is at the TOP of the file (inside the head chunk).
-       – Time is raw seconds: ";TIME:50400"
-       – Filament is in metres: ";Filament used: 2.34m"
-         → convert to grams using 1.75 mm filament @ 1.2 g/cm³
-           (π × 0.0875² cm² × 100 cm/m × 1.2 g/cm³ ≈ 2.89 g/m)      */
-    if (slicer === "cura") {
- 
-        const mSecs = text.match(/^;TIME:(\d+)/m);
-        if (mSecs) printHours = parseInt(mSecs[1]) / 3600;
- 
-        const mMetres = text.match(/^;Filament used:\s*([\d.]+)m/m);
-        if (mMetres) filamentUsed = parseFloat((parseFloat(mMetres[1]) * 2.89).toFixed(1));
- 
-        const mMat = text.match(/^;Material:\s*(.+)/im);
-        if (mMat) material = mMat[1].trim().toUpperCase();
+
+    /* ── Filament — cm³ → grams (PrusaSlicer fallback) ── */
+    if (filamentG === null) {
+        const cm3Pats = [
+            /;\s*(?:total )?filament used \[cm3\]\s*=\s*(.+)/i,
+        ];
+        for (const pat of cm3Pats) {
+            const m = text.match(pat);
+            if (m) {
+                const vals = m[1].split(/[;,]/).map(Number).filter(n => !isNaN(n) && n > 0);
+                if (vals.length) {
+                    const cm3 = vals.reduce((a, b) => a + b, 0);
+                    filamentG   = +(cm3 * 1.24).toFixed(2); // PLA density default
+                    isEstimated = true;
+                    break;
+                }
+            }
+        }
     }
- 
-    /* IdeaMaker
-       – All metadata at the TOP of the file.
-       – Time in seconds: ";Print Time: 5400"
-       – Weight in grams: ";Filament weight: 45.67 (g)"               */
-    if (slicer === "ideamaker") {
- 
-        const mSecs = text.match(/;Print Time:\s*(\d+)/i);
-        if (mSecs) printHours = parseInt(mSecs[1]) / 3600;
- 
-        const mGrams = text.match(/;Filament weight:\s*([\d.]+)\s*\(g\)/i);
-        if (mGrams) filamentUsed = parseFloat(mGrams[1]);
+
+    /* ── Filament — mm → grams ────────────────────────── */
+    if (filamentG === null) {
+        const mmPats = [
+            /;\s*filament used \[mm\]\s*=\s*(.+)/i,            // PrusaSlicer
+            /;Filament length:\s*([\d.]+)\s*\(mm\)/i,          // IdeaMaker
+            /;\s*Material used:\s*([\d.]+)\s*mm/i,             // Simplify3D
+            /;\s*filament used\s*=\s*([\d.]+)\s*mm/i,          // Slic3r
+            /;\s*Filament used\s*=\s*([\d.]+)\s*mm/i,          // KISSlicer
+            /;\s*plastic length\s*=\s*([\d.]+)\s*mm/i,         // generic
+        ];
+        for (const pat of mmPats) {
+            const m = text.match(pat);
+            if (m) {
+                const vals = m[1].split(/[;,]/).map(Number).filter(n => !isNaN(n) && n > 0);
+                if (vals.length) {
+                    filamentG   = lengthToWeight(vals.reduce((a, b) => a + b, 0), "PLA");
+                    isEstimated = true;
+                    break;
+                }
+            }
+        }
     }
- 
-    /* Simplify3D
-       – Detection string at TOP; time + weight at BOTTOM.
-       – "Build time: 14 hours 20 minutes"
-       – "Material used: 12345.67mm (45.87g)"                         */
-    if (slicer === "simplify3d") {
- 
-        const mTime = text.match(/;\s*Build time:\s*([^\n]+)/i);
-        if (mTime) printHours = parseTimeString(mTime[1].trim());
- 
-        const mGrams = text.match(/;\s*Material used:.*?\(([\d.]+)g\)/i);
-        if (mGrams) filamentUsed = parseFloat(mGrams[1]);
+
+    /* ── Filament — metres → grams (Cura) ────────────── */
+    if (filamentG === null) {
+        const mPat = /^;Filament used:\s*(.+?)m(?:\s|$)/m;
+        const m = text.match(mPat);
+        if (m) {
+            const vals = m[1].split(/[,;]/).map(s => parseFloat(s)).filter(n => !isNaN(n) && n > 0);
+            if (vals.length) {
+                filamentG   = lengthToWeight(vals.reduce((a, b) => a + b, 0) * 1000, "PLA");
+                isEstimated = true;
+            }
+        }
     }
- 
-    return { filamentUsed, printHours, material };
+
+    /* ── Print time — human-readable string ───────────── */
+    const timeStrPats = [
+        /;\s*estimated printing time \(normal mode\)\s*=\s*([^\n]+)/i, // PrusaSlicer family
+        /;\s*estimated printing time\s*=\s*([^\n]+)/i,                 // Slic3r
+        /;\s*Estimated print time:\s*([^\n]+)/i,                       // Simplify3D
+        /;\s*Build time:\s*([^\n]+)/i,                                  // Simplify3D alt
+        /;\s*Estimated Build Time:\s*([^\n]+)/i,                        // KISSlicer
+        /;\s*total print time[:\s=]+([^\n]+)/i,                        // generic
+        /;\s*print(?:ing)? time[:\s=]+([^\n]+)/i,                      // generic
+    ];
+    for (const pat of timeStrPats) {
+        const m = text.match(pat);
+        if (m) {
+            const h = parseTimeString(m[1].trim());
+            if (h > 0) { printHours = h; break; }
+        }
+    }
+
+    /* ── Print time — raw seconds (Cura / IdeaMaker) ──── */
+    if (printHours === null) {
+        const timeSecPats = [
+            /^;TIME:(\d+)/m,             // Cura
+            /^;Print Time:\s*(\d+)$/im,  // IdeaMaker
+        ];
+        for (const pat of timeSecPats) {
+            const m = text.match(pat);
+            if (m) {
+                const secs = parseInt(m[1]);
+                if (secs > 0) { printHours = secs / 3600; break; }
+            }
+        }
+    }
+
+    /* ── Material type ────────────────────────────────── */
+    const matPats = [
+        /;\s*filament_type\s*=\s*([^\n;]+)/i,          // PrusaSlicer family
+        /;\s*Filament name:\s*([^\n]+)/i,               // Simplify3D
+        /;\s*(?:material|filament)\s*=\s*([^\n;]+)/i,  // generic
+    ];
+    for (const pat of matPats) {
+        const m = text.match(pat);
+        if (m && m[1].trim()) { material = m[1].trim(); break; }
+    }
+
+    /* ── Normalize + return ───────────────────────────── */
+    return {
+        filamentG:   filamentG  !== null ? +filamentG.toFixed(2)  : null,
+        printHours:  printHours !== null ? +printHours.toFixed(2) : null,
+        material:    normalizeMaterial(material),
+        isEstimated,
+    };
 }
- 
-/* ─── Time string → decimal hours ─────────────────────── */
+
+/* ─── Time string → decimal hours ────────────────────────
+   Handles all known formats:
+   "14h 20m 15s"  "14 hours 20 minutes"  "1d 2h 3m"
+   "14:20:15"  "14.34 hour(s)"  "50400" (raw seconds)      */
 function parseTimeString(str) {
-    let h = 0;
-    const d = str.match(/(\d+)\s*d/i);
-    const hr= str.match(/(\d+)\s*h/i);
-    const m = str.match(/(\d+)\s*m(?!s)/i);
-    const s = str.match(/(\d+)\s*s/i);
-    if (d)  h += parseInt(d[1])  * 24;
-    if (hr) h += parseInt(hr[1]);
-    if (m)  h += parseInt(m[1])  / 60;
-    if (s)  h += parseInt(s[1])  / 3600;
-    // Bare number (raw seconds fallback)
-    if (!d && !hr && !m && !s && /^\d+$/.test(str.trim())) {
-        h = parseInt(str) / 3600;
+    if (!str) return 0;
+    str = str.trim();
+
+    // "14.34 hour(s)" — KISSlicer decimal format
+    const decH = str.match(/^([\d.]+)\s*hours?\b/i);
+    if (decH) return parseFloat(decH[1]);
+
+    // "14:20:15" colon-separated
+    const hms = str.match(/^(\d+):(\d{2}):(\d{2})$/);
+    if (hms) return +hms[1] + +hms[2] / 60 + +hms[3] / 3600;
+
+    // Component-based: days, hours, minutes, seconds
+    let total = 0;
+    const d  = str.match(/(\d+)\s*d(?:ays?)?/i);
+    const h  = str.match(/(\d+)\s*h(?:ours?|rs?)?/i);
+    const m  = str.match(/(\d+)\s*m(?:in(?:utes?)?)?(?!\s*s|\d)/i);
+    const s  = str.match(/(\d+)\s*s(?:ec(?:onds?)?)?/i);
+
+    if (d) total += parseInt(d[1]) * 24;
+    if (h) total += parseInt(h[1]);
+    if (m) total += parseInt(m[1]) / 60;
+    if (s) total += parseInt(s[1]) / 3600;
+
+    // Fallback: bare integer treated as raw seconds
+    if (!d && !h && !m && !s && /^\d+$/.test(str)) {
+        total = parseInt(str) / 3600;
     }
-    return parseFloat(h.toFixed(4));
+
+    return parseFloat(total.toFixed(4));
 }
- 
-/* ─── Decimal hours → "14h 20m" label ────────────────── */
+
+/* ─── Decimal hours → readable label ─────────────────────*/
 function hoursToLabel(h) {
     const hrs  = Math.floor(h);
     const mins = Math.round((h - hrs) * 60);
@@ -230,73 +327,82 @@ function hoursToLabel(h) {
     if (mins === 0) return hrs + "h";
     return hrs + "h " + mins + "m";
 }
- 
-/* ─── Apply extracted data to the form ───────────────── */
+
+/* ─── Filament length (mm) → weight (g) ──────────────────*/
+function lengthToWeight(mm, matKey) {
+    const density = MATERIAL_DENSITY[matKey] || 1.24;
+    const r       = FILAMENT_DIAMETER_MM / 2;
+    return +((mm * Math.PI * r * r / 1000) * density).toFixed(2);
+}
+
+/* ─── Material name → dropdown value ─────────────────────*/
+function normalizeMaterial(raw) {
+    if (!raw) return null;
+    // Take first value in multi-material strings e.g. "PLA;PLA" or "PLA,PETG"
+    const s = raw.split(/[;,]/)[0].trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    // Check longest keys first to avoid "PLA" matching inside "PETG"
+    for (const key of ["PETG", "ASA", "ABS", "PLA", "PC"]) {
+        if (s === key || s.startsWith(key) || s.includes(key)) return key;
+    }
+    return null;
+}
+
+/* ─── Apply extracted data to the form ───────────────────*/
 function applyGcodeData(data) {
- 
-    if (data.filamentUsed > 0) {
+    if (data.filamentG !== null) {
         const el = document.getElementById("filamentUsed");
-        el.value = data.filamentUsed.toFixed(1);
+        el.value = data.filamentG.toFixed(1);
         flashField(el);
     }
- 
-    if (data.printHours > 0) {
+    if (data.printHours !== null) {
         const el = document.getElementById("printHours");
         el.value = data.printHours.toFixed(2);
         flashField(el);
     }
- 
     if (data.material) {
         const sel = document.getElementById("material");
-        // Match exact value or prefix (e.g. "PLA_CF" → "PLA")
-        const hit = [...sel.options].find(o =>
-            o.value === data.material || data.material.startsWith(o.value)
-        );
-        if (hit) {
-            sel.value = hit.value;
-            flashField(sel);
-        }
+        const hit = [...sel.options].find(o => o.value === data.material);
+        if (hit) { sel.value = hit.value; flashField(sel); }
     }
- 
-    calc(); // ← Was incorrectly called as calculate() — that function doesn't exist.
+    calc();
 }
- 
-/* ─── Green flash on auto-filled fields ──────────────── */
+
+/* ─── Green flash on auto-filled fields ──────────────────*/
 function flashField(el) {
     el.classList.remove("field-filled");
-    void el.offsetWidth; // force reflow to restart animation
+    void el.offsetWidth;
     el.classList.add("field-filled");
     el.addEventListener("animationend", () => el.classList.remove("field-filled"), { once: true });
 }
- 
-/* ─── Status bar ─────────────────────────────────────── */
+
+/* ─── Status bar ──────────────────────────────────────────*/
 function setStatus(msg, type) {
     const el = document.getElementById("gcodeStatus");
     if (!el) return;
     el.textContent = msg;
     el.className   = "gcode-status" + (type ? " " + type : "");
 }
- 
- 
+
+
 /* =========================================================
    INVOICE SYSTEM
    ========================================================= */
- 
+
 let invoiceItems = [];
- 
+
 /* ─── localStorage keys ───────────────────────────────── */
 const STORE = {
     name:       "printobs_company_name",
     logo:       "printobs_logo",
     includeTax: "printobs_include_tax",
 };
- 
+
 /* ─── Settings — save / load ──────────────────────────── */
 function saveSettings() {
     localStorage.setItem(STORE.name,       document.getElementById("companyName").value);
     localStorage.setItem(STORE.includeTax, document.getElementById("includeTax").checked);
 }
- 
+
 function loadSettings() {
     const name = localStorage.getItem(STORE.name);
     const logo = localStorage.getItem(STORE.logo);
@@ -305,7 +411,7 @@ function loadSettings() {
     if (logo) showLogoPreview(logo);
     if (tax !== null) document.getElementById("includeTax").checked = (tax === "true");
 }
- 
+
 /* ─── Logo upload ─────────────────────────────────────── */
 function setupLogoUpload() {
     const input = document.getElementById("logoUpload");
@@ -321,7 +427,7 @@ function setupLogoUpload() {
         reader.readAsDataURL(file);
     });
 }
- 
+
 function showLogoPreview(dataUrl) {
     document.getElementById("logoArea").innerHTML = `
         <div class="logo-preview-wrap">
@@ -329,7 +435,7 @@ function showLogoPreview(dataUrl) {
             <button class="logo-remove-btn" onclick="removeLogo()">Remove</button>
         </div>`;
 }
- 
+
 function removeLogo() {
     localStorage.removeItem(STORE.logo);
     document.getElementById("logoArea").innerHTML = `
@@ -344,7 +450,7 @@ function removeLogo() {
         </label>`;
     setupLogoUpload();
 }
- 
+
 /* ─── Add current calculation to invoice ─────────────── */
 function addToInvoice() {
     const spoolW          = v("spoolWeight") || 1;
@@ -356,7 +462,7 @@ function addToInvoice() {
     const preTax          = (subtotal + failureCost) * (1 + v("profit") / 100);
     const taxAmount       = preTax * (v("tax") / 100);
     const finalPrice      = preTax + taxAmount;
- 
+
     invoiceItems.push({
         id:            Date.now(),
         description:   mat() + " Part",
@@ -373,9 +479,9 @@ function addToInvoice() {
         preTax,
         finalPrice,
     });
- 
+
     renderInvoice();
- 
+
     // Button feedback
     const btn = document.getElementById("addToInvoiceBtn");
     btn.innerHTML  = "✓ Added";
@@ -385,19 +491,19 @@ function addToInvoice() {
         btn.classList.remove("add-invoice-btn--added");
     }, 1400);
 }
- 
+
 /* ─── Remove item ─────────────────────────────────────── */
 function removeInvoiceItem(id) {
     invoiceItems = invoiceItems.filter(i => i.id !== id);
     renderInvoice();
 }
- 
+
 /* ─── Update item description ─────────────────────────── */
 function updateDescription(id, value) {
     const item = invoiceItems.find(i => i.id === id);
     if (item) item.description = value;
 }
- 
+
 /* ─── Clear all items ─────────────────────────────────── */
 function clearInvoice() {
     if (invoiceItems.length === 0) return;
@@ -405,18 +511,18 @@ function clearInvoice() {
     invoiceItems = [];
     renderInvoice();
 }
- 
+
 /* ─── Render invoice list in the sidebar ─────────────── */
 function renderInvoice() {
     const listEl   = document.getElementById("invoiceItems");
     const totalsEl = document.getElementById("invoiceTotals");
- 
+
     if (invoiceItems.length === 0) {
         listEl.innerHTML = `<p class="invoice-empty">No items yet — calculate a price and click <strong>Add to Invoice</strong>.</p>`;
         totalsEl.style.display = "none";
         return;
     }
- 
+
     listEl.innerHTML = invoiceItems.map((item, idx) => `
         <div class="invoice-item">
             <span class="invoice-item-num">${idx + 1}</span>
@@ -429,21 +535,21 @@ function renderInvoice() {
             <button class="invoice-item-remove" onclick="removeInvoiceItem(${item.id})" title="Remove">×</button>
         </div>`
     ).join("");
- 
+
     const showTax    = document.getElementById("includeTax").checked;
     const preTaxSum  = invoiceItems.reduce((s, i) => s + i.preTax, 0);
     const taxSum     = invoiceItems.reduce((s, i) => s + i.taxAmount, 0);
     const grandTotal = invoiceItems.reduce((s, i) => s + i.finalPrice, 0);
     const c          = invoiceItems[0].currency;
- 
+
     document.getElementById("invPreTax").textContent = c + " " + preTaxSum.toFixed(2);
     document.getElementById("invTax").textContent    = c + " " + taxSum.toFixed(2);
     document.getElementById("invTotal").textContent  = c + " " + (showTax ? grandTotal : preTaxSum).toFixed(2);
     document.getElementById("invTaxRow").style.display = showTax ? "" : "none";
- 
+
     totalsEl.style.display = "";
 }
- 
+
 /* ─── HTML escape helper ──────────────────────────────── */
 function escHtml(str) {
     return String(str)
@@ -452,33 +558,33 @@ function escHtml(str) {
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
 }
- 
+
 /* ─── Print / save as PDF ─────────────────────────────── */
 function printInvoice() {
     if (invoiceItems.length === 0) {
         alert("Add at least one item to the invoice before printing.");
         return;
     }
- 
+
     const companyName = document.getElementById("companyName").value.trim() || "PRINT OBS";
     const logoDataUrl = localStorage.getItem(STORE.logo);
     const showTax     = document.getElementById("includeTax").checked;
     const c           = invoiceItems[0].currency;
- 
+
     const date   = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
     const invNum = "INV-" + Date.now().toString().slice(-6);
- 
+
     const preTaxSum  = invoiceItems.reduce((s, i) => s + i.preTax, 0);
     const taxSum     = invoiceItems.reduce((s, i) => s + i.taxAmount, 0);
     const grandTotal = invoiceItems.reduce((s, i) => s + i.finalPrice, 0);
     const finalTotal = showTax ? grandTotal : preTaxSum;
- 
+
     const logoHtml = logoDataUrl
         ? `<img src="${logoDataUrl}" alt="Logo" style="height:48px;max-width:160px;object-fit:contain;display:block;margin-bottom:6px;">`
         : "";
- 
+
     const taxColHeaders = showTax ? "<th>Pre-tax</th><th>Tax</th>" : "";
- 
+
     const rows = invoiceItems.map((item, idx) => `
         <tr>
             <td>${idx + 1}</td>
@@ -493,7 +599,7 @@ function printInvoice() {
             <td style="text-align:right;font-weight:700;">${c} ${(showTax ? item.finalPrice : item.preTax).toFixed(2)}</td>
         </tr>`
     ).join("");
- 
+
     const taxTotalRows = showTax ? `
         <tr>
             <td colspan="${showTax ? 6 : 5}" style="text-align:right;color:#666;padding:6px 10px;">Pre-tax Total</td>
@@ -503,9 +609,9 @@ function printInvoice() {
             <td colspan="${showTax ? 6 : 5}" style="text-align:right;color:#666;padding:6px 10px;">Tax</td>
             <td style="text-align:right;padding:6px 10px;">${c} ${taxSum.toFixed(2)}</td>
         </tr>` : "";
- 
+
     const colCount = showTax ? 7 : 6;
- 
+
     document.getElementById("invoice-print-view").innerHTML = `
         <style>
             #invoice-print-view * { box-sizing:border-box; margin:0; padding:0; font-family:Arial,sans-serif; }
@@ -532,7 +638,7 @@ function printInvoice() {
                 <p><strong>Date:</strong> ${date}</p>
             </div>
         </div>
- 
+
         <table>
             <thead>
                 <tr>
@@ -547,7 +653,7 @@ function printInvoice() {
             </thead>
             <tbody>${rows}</tbody>
         </table>
- 
+
         <table style="width:280px;margin-left:auto;">
             ${taxTotalRows}
             <tr class="inv-grand">
@@ -555,18 +661,18 @@ function printInvoice() {
                 <td style="text-align:right;">${c} ${finalTotal.toFixed(2)}</td>
             </tr>
         </table>
- 
+
         <div class="inv-footer">
             Generated by PRINT OBS &nbsp;·&nbsp; printobs.com
         </div>`;
- 
+
     window.print();
 }
- 
+
 /* ─── Init ────────────────────────────────────────────── */
 loadSettings();
 setupLogoUpload();
- 
+
 document.getElementById("companyName").addEventListener("input",  saveSettings);
 document.getElementById("includeTax").addEventListener("change", function () {
     saveSettings();
